@@ -1,0 +1,85 @@
+// c code 
+//-----
+//==================
+#include <stdio.h>
+#include <stdint.h>
+
+int invalid_utf8_byte(char *utf8_string) {
+    uint32_t codepoint;
+    int length;
+    int i = 0;
+    while (utf8_string[i] != '\0') {
+        if ((utf8_string[i] & 0x80) == 0) {
+            // 1-byte sequence
+            length = 1;
+            codepoint = utf8_string[i] & 0x7F;
+        } else if ((utf8_string[i] & 0xE0) == 0xC0) {
+            // 2-byte sequence
+            length = 2;
+            codepoint = utf8_string[i] & 0x1F;
+        } else if ((utf8_string[i] & 0xF0) == 0xE0) {
+            // 3-byte sequence
+            length = 3;
+            codepoint = utf8_string[i] & 0x0F;
+        } else if ((utf8_string[i] & 0xF8) == 0xF0) {
+            // 4-byte sequence
+            length = 4;
+            codepoint = utf8_string[i] & 0x07;
+        } else {
+            // Invalid UTF-8 sequence
+            return i;
+        }
+        for (int j = 1; j < length; j++) {
+            if ((utf8_string[i+j] & 0xC0) != 0x80) {
+                // Invalid UTF-8 sequence
+                return i+j;
+            }
+            codepoint = (codepoint << 6) | (utf8_string[i+j] & 0x3F);
+        }
+        if (codepoint > 0x10FFFF) {
+            // Invalid codepoint (greater than U+10FFFF)
+            return i;
+        }
+        i += length;
+    }
+    return -1; // No invalid UTF-8 sequence found
+}
+
+
+int main() {
+    char *valid_string = "Hello world!";
+    char *invalid_string = "hello\xc3\x28";
+    char *invalid_string2 = "Th\xef\xbf\xbdis is a test"; // contains replacement character
+    char *valid_string2 = "welcome to Chegg";
+    
+    int result = invalid_utf8_byte(valid_string);
+    if (result == -1) {
+        printf("Valid string: -1\n");
+    } else {
+        printf("Invalid string: first invalid UTF-8 byte found at index %d.\n", result);
+    }
+    
+    result = invalid_utf8_byte(invalid_string);
+    if (result == -1) {
+        printf("Valid string: -1\n");
+    } else {
+        printf("Invalid string: first invalid UTF-8 byte found at index %d.\n", result);
+    }
+    
+    result = invalid_utf8_byte(invalid_string2);
+    if (result == -1) {
+        printf("Valid string: -1\n");
+    } else {
+        printf("Invalid string: first invalid UTF-8 byte found at index %d.\n", result);
+    }
+    
+    result = invalid_utf8_byte(valid_string2);
+    if (result == -1) {
+        printf("Valid string: -1\n");
+    } else {
+        printf("Invalid string: first invalid UTF-8 byte found at index %d.\n", result);
+    }
+    
+    return 0;
+}
+
